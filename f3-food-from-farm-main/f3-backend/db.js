@@ -86,21 +86,31 @@ function writeLocalDb(data) {
 }
 
 let isMySQLConnected = false;
-let mysqlConn = null;
+let pool = null;
 
 const dbConfig = {
   host: process.env.DB_HOST || "localhost",
+  port: Number(process.env.DB_PORT) || 3306,
   user: process.env.DB_USER || "root",
   password: process.env.DB_PASSWORD || "",
   database: process.env.DB_NAME || "f3_database",
+  waitForConnections: true,
+  connectionLimit: 5,
+  connectTimeout: 10000,
+  enableKeepAlive: true,
 };
 
+// Cloud MySQL (TiDB Cloud, Aiven, PlanetScale...) needs SSL: set DB_SSL=true
+if (String(process.env.DB_SSL).toLowerCase() === "true") {
+  dbConfig.ssl = { minVersion: "TLSv1.2", rejectUnauthorized: true };
+}
+
 try {
-  mysqlConn = mysql.createConnection(dbConfig);
-  mysqlConn.connect((err) => {
+  pool = mysql.createPool(dbConfig);
+  pool.query("SELECT 1", (err) => {
     if (err) {
-      console.log("[DB] MySQL Connection Error:", err.message);
-      console.log("[DB] Falling back to persistent Local File Database (data/local_db.json).");
+      console.log("[DB] MySQL Connection Error:", err.message || err.code);
+      console.log("[DB] Falling back to Local File Database (data/local_db.json).");
       isMySQLConnected = false;
     } else {
       console.log("[DB] Connected to MySQL successfully.");
@@ -108,18 +118,13 @@ try {
       initMySQLTables();
     }
   });
-
-  mysqlConn.on("error", (err) => {
-    console.log("[DB] MySQL runtime error:", err.message);
-    isMySQLConnected = false;
-  });
 } catch (e) {
   console.log("[DB] MySQL initialization error:", e.message);
   isMySQLConnected = false;
 }
 
 function initMySQLTables() {
-  if (!isMySQLConnected || !mysqlConn) return;
+  if (!isMySQLConnected || !pool) return;
   const queries = [
     `CREATE TABLE IF NOT EXISTS users (
       id INT AUTO_INCREMENT PRIMARY KEY,
@@ -149,12 +154,29 @@ function initMySQLTables() {
     `CREATE TABLE IF NOT EXISTS notifications (
       id INT AUTO_INCREMENT PRIMARY KEY,
       message TEXT
-    )`
+    )`,
   ];
+  let remaining = queries.length;
   queries.forEach((q) => {
-    mysqlConn.query(q, (err) => {
+    pool.query(q, (err) => {
       if (err) console.log("[DB] Error creating table in MySQL:", err.message);
+      if (--remaining === 0) seedMySQLMarketplace();
     });
+  });
+}
+
+// Put the sample products in an empty marketplace table so the site isn't blank
+function seedMySQLMarketplace() {
+  pool.query("SELECT COUNT(*) AS c FROM marketplace", (err, rows) => {
+    if (err || !rows || rows[0].c > 0) return;
+    DEFAULT_DATA.marketplace.forEach((m) => {
+      pool.query(
+        "INSERT INTO marketplace (name, place, produce, quantity, price, state, image) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [m.name, m.place, m.produce, m.quantity, m.price, m.state, m.image],
+        (e) => e && console.log("[DB] Seed error:", e.message)
+      );
+    });
+    console.log("[DB] Seeded sample products into MySQL.");
   });
 }
 
@@ -164,11 +186,11 @@ function query(sql, params, callback) {
     params = [];
   }
   if (!callback) {
-    callback = () => {};
+    callback = () => { };
   }
 
-  if (isMySQLConnected && mysqlConn) {
-    return mysqlConn.query(sql, params, (err, results, fields) => {
+  if (isMySQLConnected && pool) {
+    return pool.query(sql, params, (err, results, fields) => {
       if (err) {
         console.warn("[DB] MySQL query failed, attempting local fallback:", err.message);
         handleLocalQuery(sql, params, callback);
