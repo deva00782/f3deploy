@@ -4,6 +4,8 @@ const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const axios = require("axios");
 const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
 
 const app = express();
 
@@ -15,9 +17,12 @@ app.use(express.json());
    FILE UPLOAD CONFIG
 ================================ */
 
+const UPLOADS_DIR = path.join(__dirname, "uploads");
+fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, "uploads/");
+    cb(null, UPLOADS_DIR);
   },
   filename: function (req, file, cb) {
     cb(null, Date.now() + "-" + file.originalname);
@@ -26,7 +31,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-app.use("/uploads", express.static("uploads"));
+app.use("/uploads", express.static(UPLOADS_DIR));
 
 console.log("Starting server...");
 
@@ -539,11 +544,12 @@ app.get("/notifications", (req, res) => {
 /* ================================
    SERVE REACT BUILD (FOR RENDER)
 ================================ */
-const path = require("path");
-
 app.use(express.static(path.join(__dirname, "dist")));
 
 app.use((req, res) => {
+  if (req.path.startsWith("/uploads") || req.path.startsWith("/assets")) {
+    return res.status(404).send("Not found");
+  }
   res.sendFile(path.join(__dirname, "dist", "index.html"));
 });
 
