@@ -11,6 +11,7 @@ if (!fs.existsSync(DATA_DIR)) {
 
 // Initial seed data if local_db doesn't exist
 const DEFAULT_DATA = {
+  seeded: true,
   users: [],
   marketplace: [
     {
@@ -70,7 +71,16 @@ function readLocalDb() {
       return DEFAULT_DATA;
     }
     const raw = fs.readFileSync(DB_FILE, "utf-8");
-    return JSON.parse(raw);
+    const data = JSON.parse(raw);
+    // One-time: if an old/stale data file has an empty marketplace, load the sample products
+    if (!data.seeded) {
+      if (!Array.isArray(data.marketplace) || data.marketplace.length === 0) {
+        data.marketplace = JSON.parse(JSON.stringify(DEFAULT_DATA.marketplace));
+      }
+      data.seeded = true;
+      fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
+    }
+    return data;
   } catch (err) {
     console.error("[LocalDB] Error reading local_db.json, using defaults:", err);
     return DEFAULT_DATA;
@@ -186,7 +196,7 @@ function query(sql, params, callback) {
     params = [];
   }
   if (!callback) {
-    callback = () => { };
+    callback = () => {};
   }
 
   if (isMySQLConnected && pool) {
