@@ -252,6 +252,13 @@ app.get("/products", (req, res) => {
 
 app.delete("/delete-produce/:id", (req, res) => {
 
+  // Only farmers may delete produce
+  if (req.headers["x-user-role"] !== "farmer") {
+    return res.status(403).json({
+      message: "Only farmers can delete produce"
+    });
+  }
+
   const { id } = req.params;
 
   const sql =
