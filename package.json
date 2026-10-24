@@ -1,0 +1,11 @@
+{
+  "name": "f3-food-from-farm-root",
+  "private": true,
+  "scripts": {
+    "install:all": "npm --prefix f3-food-from-farm-main/f3-backend install && npm --prefix f3-food-from-farm-main/f3-frontend-new install",
+    "build": "npm --prefix f3-food-from-farm-main/f3-frontend-new install && npm --prefix f3-food-from-farm-main/f3-frontend-new run build",
+    "start": "node f3-food-from-farm-main/f3-backend/server.js",
+    "dev": "npm --prefix f3-food-from-farm-main/f3-frontend-new run dev",
+    "server": "node f3-food-from-farm-main/f3-backend/server.js"
+  }
+}

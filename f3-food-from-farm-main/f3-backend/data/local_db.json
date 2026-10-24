@@ -1,0 +1,38 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "email": "nityasreegundu@gmail.com",
+      "password": "$2b$10$IlwFrpK8t1Mq7lniCq2djO.VJaPn4QKLb1gnD.64zhw1nCgNZ64gO",
+      "role": "farmer"
+    },
+    {
+      "id": 2,
+      "email": "nityasree@gmail.com",
+      "password": "$2b$10$.VvR5zzaOhZ5je7ySenMQ.XDa.Epyla33scQHxSw43aWvrbvmo5Om",
+      "role": "consumer"
+    }
+  ],
+  "marketplace": [],
+  "transactions": [
+    {
+      "id": 1,
+      "customer_name": "",
+      "total_price": 1,
+      "payment_method": "UPI",
+      "status": "Success",
+      "created_at": "2026-10-24T06:01:56.203Z"
+    }
+  ],
+  "notifications": [
+    {
+      "id": 1,
+      "message": "Welcome to F3 Food From Farm Platform!"
+    },
+    {
+      "id": 2,
+      "message": "\nNew Order Received\n\nCustomer: \nPhone: \nProduce: undefined\nQuantity: undefined kg\nAddress:\n, ,\n, \n",
+      "created_at": "2026-10-24T06:01:56.222Z"
+    }
+  ]
+}
